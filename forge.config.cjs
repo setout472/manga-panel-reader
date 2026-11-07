@@ -1,0 +1,2 @@
+module.exports = {packagerConfig:{...(process.env.MANGA_ELECTRON_ZIP_DIR?{electronZipDir:process.env.MANGA_ELECTRON_ZIP_DIR}:{}),asar:{unpack:'*.{node,dll}'},executableName:'MangaPanelReader',ignore:[/^\/out($|\/)/,/^\/src($|\/)/,/^\/tests($|\/)/,/^\/scripts($|\/)/,/^\/evidence($|\/)/,/^\/\.runtime($|\/)/,/^\/test-results($|\/)/,/^\/playwright-report($|\/)/,/^\/\.git($|\/)/]},makers:[{name:'@electron-forge/maker-zip',platforms:['win32']}]};
+

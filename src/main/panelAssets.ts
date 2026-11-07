@@ -1,0 +1,11 @@
+import {readFileSync,statSync} from 'node:fs';import {join} from 'node:path';import {createHash} from 'node:crypto';
+export const PANEL_WEIGHT_HASH='fba50583bfaaba3eed33f3eac6ca37be09b8c4882bac05da93f96697010a45b1';
+export const PANEL_MODEL='rtdetr-manga109s-fba50583-native1243-group2-crop1-rgb1';
+type Asset={file:string;size:number;sha256:string};
+export function validatePanelAssetManifest(doc:any):Asset[]{
+ if(doc?.version!==1||doc.runtime!=='1.24.3'||!Array.isArray(doc.assets)||doc.assets.length>100)throw Error('专用分格资源清单无效');const names=new Set<string>();
+ for(const a of doc.assets){if(!a||typeof a.file!=='string'||!/^(model\.onnx|node_modules\/onnxruntime-node\/(package\.json|dist\/[a-z0-9-]+\.js|bin\/napi-v6\/win32\/x64\/(onnxruntime_binding\.node|onnxruntime\.dll|DirectML\.dll|dxcompiler\.dll|dxil\.dll))|node_modules\/onnxruntime-common\/(package\.json|dist\/cjs\/([a-z0-9-]+\.js|package\.json)))$/.test(a.file)||names.has(a.file)||!Number.isSafeInteger(a.size)||a.size<=0||a.size>260_000_000||!/^[a-f0-9]{64}$/.test(a.sha256))throw Error('专用分格资源路径或校验字段无效');names.add(a.file);if(a.file==='model.onnx'&&(a.sha256!==PANEL_WEIGHT_HASH||a.size!==250157337))throw Error('专用分格模型版本不匹配')}
+ for(const name of ['model.onnx','node_modules/onnxruntime-node/package.json','node_modules/onnxruntime-node/dist/index.js','node_modules/onnxruntime-common/package.json','node_modules/onnxruntime-common/dist/cjs/index.js','node_modules/onnxruntime-node/bin/napi-v6/win32/x64/onnxruntime_binding.node','node_modules/onnxruntime-node/bin/napi-v6/win32/x64/onnxruntime.dll'])if(!names.has(name))throw Error('专用分格资源不完整');return doc.assets;
+}
+export function verifyPanelAssets(root:string){const assets=validatePanelAssetManifest(JSON.parse(readFileSync(join(root,'assets.json'),'utf8')));for(const a of assets){const file=join(root,a.file);if(statSync(file).size!==a.size||createHash('sha256').update(readFileSync(file)).digest('hex')!==a.sha256)throw Error('专用分格资源损坏，请保留旧包并恢复模型文件')}return assets}
+export function panelAssetsPresent(root:string){try{const assets=validatePanelAssetManifest(JSON.parse(readFileSync(join(root,'assets.json'),'utf8')));return assets.every(a=>statSync(join(root,a.file)).size===a.size)}catch{return false}}

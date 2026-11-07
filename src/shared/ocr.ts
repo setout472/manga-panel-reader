@@ -1,0 +1,11 @@
+import type {Rect} from './types';
+export type OcrLine={id:string;text:string;confidence:number;bounds:Rect;poly:[number,number][];needsReview:boolean;panelId?:string};
+export type OcrDocument={pageId:string;imageHash:string;model:string;width:number;height:number;lines:OcrLine[];cacheKey?:string;durationMs?:number;createdAt?:string};
+export type OcrMode='whole'|'refine';
+export type OcrRefinementView={identity:string;document:OcrDocument;cropCount:number;skippedCount:number};
+export type OcrTask={from:number;to:number;force:boolean;mode?:OcrMode;remainingPageIds:string[];failedPageIds:string[];state:'running'|'paused'|'cancelled'|'done'|'error';done:number;total:number;message?:string};
+export type OcrCrop={left:number;top:number;width:number;height:number;scale:number};
+export type OcrRefinementParameters={version:string;scale:number;margin:number;maxCrops:number;maxSide:number;maxPixels:number;mergeVersion:string;reviewPolicy:string;assignmentPolicy:string};
+export type OcrCropPlan={parameters:OcrRefinementParameters;crops:(OcrCrop&{panelId:string})[];skipped:{panelId:string;reason:'whole-page'|'duplicate'|'size'|'budget'}[];totalPixels:number};
+export type OcrRefinementResult={document:OcrDocument;recipeKey:string;complete:boolean;plan:OcrCropPlan;runs:{panelId:string;status:'done'|'error';durationMs:number;lines?:number;error?:string}[]};
+export type OcrRefinementCache={version:'refinement-cache-v1';result:OcrRefinementResult;checksum:string};

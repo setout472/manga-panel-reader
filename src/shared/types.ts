@@ -1,0 +1,46 @@
+import type {PageContent,StoryDraft} from './story';
+import type {ReadingNote} from './readingNotes';
+import type {OcrDocument,OcrTask,OcrMode,OcrRefinementCache,OcrRefinementView} from './ocr';
+export type Rect = { x:number; y:number; width:number; height:number };
+export type Panel = Rect & {id:string; order:number};
+export type PanelLayout={framePanels:Panel[];textRegions:Rect[];bodyRegions:Rect[];unassignedTextRegions:Rect[];orderUncertain:boolean;version:string};
+export type Analysis = {panels:Panel[]; needsReview:boolean; model:string; cacheKey:string; durationMs:number; layout?:PanelLayout; usage?:{prompt_tokens?:number;completion_tokens?:number;total_tokens?:number}; error?:string};
+export type PageAsset = {readingNote?:ReadingNote;id:string; index:number; file:string; hash:string; width:number; height:number; remoteUrl?:string; analysis?:Analysis; content?:PageContent; ocr?:OcrDocument; ocrError?:string; ocrRefinement?:OcrRefinementCache;ocrRefinementDraft?:OcrRefinementCache;ocrRefinementError?:string;override?:{panels:Panel[];version:number;updatedAt:string}; status:'ready'|'analyzing'|'done'|'review'|'error'};
+export type ReadingProgress = {page:number;panel:number;mode:'page'|'panel';zoom:number};
+export type ChapterManifest = {id:string;title:string;source:'images'|'pdf'|'copy';sourceUrl?:string;expectedPages?:number;pages:PageAsset[];collectionStatus:'idle'|'running'|'paused'|'cancelled'|'incomplete'|'complete'|'error';message?:string;createdAt:string;updatedAt:string;progress:ReadingProgress;direction:'rtl'|'ltr';ocrTask?:OcrTask;analysisTask?:{from:number;to:number;remainingPageIds:string[];force:boolean;engine?:'local'|'cloud';state:Job['state'];total:number;done:number;message?:string};story?:StoryDraft;storyStale?:boolean;storyTask?:{from:number;to:number;engine:'local'|'cloud';state:Job['state'];done:number;total:number;message?:string}};
+export type Provider='default'|'relay';
+export type CloudProfile={baseUrl:string;model:string;hasApiKey:boolean;maxImageSide:number;wireApi:'chat-completions'|'responses';reasoningEffort:'low'|'medium'|'high'};
+export type Settings = {baseUrl:string;model:string;hasApiKey:boolean;maxImageSide:number;dataDir:string;provider?:Provider;wireApi?:CloudProfile['wireApi'];reasoningEffort?:CloudProfile['reasoningEffort'];profiles?:Record<Provider,CloudProfile>};
+export type SaveSettings={baseUrl:string;model:string;apiKey?:string;maxImageSide:number;provider?:Provider;wireApi?:CloudProfile['wireApi'];reasoningEffort?:CloudProfile['reasoningEffort']};
+export type Job = {chapterId:string;kind:'collect'|'analyze'|'story'|'ocr';state:'running'|'paused'|'cancelled'|'done'|'error';done:number;total:number;message?:string};
+export type PdfInput = {name:string;bytes:Uint8Array};
+export interface ReaderAPI {
+ saveReadingNote(id:string,pageId:string,hash:string,version:number,text:string):Promise<ChapterManifest>;
+ listChapters():Promise<ChapterManifest[]>;
+ getChapter(id:string):Promise<ChapterManifest>;
+ importImages():Promise<ChapterManifest|null>;
+ pickPdf():Promise<PdfInput|null>;
+ createPdf(name:string):Promise<ChapterManifest>;
+ addPdfPage(id:string,index:number,png:Uint8Array):Promise<ChapterManifest>;
+ finishPdf(id:string,total:number):Promise<ChapterManifest>;
+ importUrl(url:string):Promise<ChapterManifest>;
+ continueCollection(id:string):Promise<void>;
+ analyze(id:string,from:number,to:number,force?:boolean):Promise<void>;
+ analyzeLocal(id:string,from:number,to:number):Promise<void>;
+ panelModelStatus():Promise<{available:boolean;message:string}>;
+ generateStory(id:string,from:number,to:number,engine:'local'|'cloud'):Promise<void>;
+ recognizeText(id:string,from:number,to:number,force?:boolean,mode?:OcrMode):Promise<void>;
+ ocrStatus():Promise<{available:boolean;message:string}>;
+ getOcrRefinement(id:string,pageId:string):Promise<OcrRefinementView|null>;
+ localModelStatus():Promise<{available:boolean;message:string}>;
+ controlJob(id:string,kind:'collect'|'analyze'|'story'|'ocr',action:'pause'|'resume'|'cancel'):Promise<void>;
+ showSource(id:string):Promise<void>;
+ savePanels(id:string,pageId:string,panels:Panel[]|null):Promise<ChapterManifest>;
+ saveProgress(id:string,progress:ReadingProgress):Promise<void>;
+ setDirection(id:string,direction:'rtl'|'ltr'):Promise<ChapterManifest>;
+ getSettings():Promise<Settings>;
+ saveSettings(settings:SaveSettings):Promise<Settings>;
+ onUpdate(cb:(event:{chapterId:string;job?:Job})=>void):()=>void;
+ imageUrl(chapterId:string,pageId:string):string;
+}
+declare global {interface Window {reader:ReaderAPI}}
